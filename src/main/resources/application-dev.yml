@@ -1,3 +1,5 @@
+# 개발 환경에서 사용할 파일
+
 spring:
   application:
     name: backend
@@ -33,3 +35,7 @@ server:
 app:
   jwtSecret: test # 나중에 .env로 설정해야 합니다.
   jwtExpirationInMs: 3600000
+
+# 파일 업로드 경로
+file:
+  upload-dir: uploads/
