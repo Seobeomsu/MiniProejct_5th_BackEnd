@@ -9,7 +9,6 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "books")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,9 +25,6 @@ public class Book {
     @Column(nullable = false)
     private String author;
 
-    @Column(unique = true)
-    private String isbn;
-
     @Column(name = "published_date")
     private LocalDate publishedDate;
 
@@ -36,4 +32,9 @@ public class Book {
 
     @Column(length = 1000)
     private String description;
+
+    // User와의 관계 (FK)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }

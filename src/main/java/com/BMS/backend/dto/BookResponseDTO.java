@@ -17,10 +17,10 @@ public class BookResponseDTO {
     private Long id;
     private String title;
     private String author;
-    private String isbn;
     private LocalDate publishedDate;
     private Integer price;
     private String description;
+    private Long userId; // 책 소유자 ID
 
     // Entity to DTO
     public static BookResponseDTO fromEntity(Book book) {
@@ -28,10 +28,10 @@ public class BookResponseDTO {
         dto.setId(book.getId());
         dto.setTitle(book.getTitle());
         dto.setAuthor(book.getAuthor());
-        dto.setIsbn(book.getIsbn());
         dto.setPublishedDate(book.getPublishedDate());
         dto.setPrice(book.getPrice());
         dto.setDescription(book.getDescription());
+        dto.setUserId(book.getUser() != null ? book.getUser().getId() : null);
         return dto;
     }
 }

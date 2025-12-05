@@ -16,9 +16,7 @@ public class BookRequestDTO {
 
     private String title;
     private String author;
-    private String isbn;
     private LocalDate publishedDate;
-    private Integer price;
     private String description;
 
     // DTO to Entity
@@ -26,9 +24,7 @@ public class BookRequestDTO {
         Book book = new Book();
         book.setTitle(this.title);
         book.setAuthor(this.author);
-        book.setIsbn(this.isbn);
         book.setPublishedDate(this.publishedDate);
-        book.setPrice(this.price);
         book.setDescription(this.description);
         return book;
     }
