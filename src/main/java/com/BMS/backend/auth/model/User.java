@@ -5,10 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -20,6 +17,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +28,7 @@ public class User {
     private String email;
 
     @Size(min = 6)
-    @Column(unique = true,  nullable = false)
+    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false)
@@ -38,8 +36,4 @@ public class User {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
-
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
-    @JsonManagedReference
-    private List<Book> books;
 }
