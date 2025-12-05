@@ -35,7 +35,7 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "이미 존재하는 아이디입니다.");
+                    "이미 존재하는 이메일입니다.");
         }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
