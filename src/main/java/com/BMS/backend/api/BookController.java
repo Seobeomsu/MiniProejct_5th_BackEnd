@@ -1,10 +1,13 @@
 package com.BMS.backend.api;
 
 import com.BMS.backend.domain.User;
+import com.BMS.backend.dto.Book.BookUpdateRequest;
+import com.BMS.backend.exception.ApiResponse;
+import com.BMS.backend.exception.CustomException;
 import com.BMS.backend.repository.UserRepository;
 import com.BMS.backend.domain.Book;
-import com.BMS.backend.dto.Book.BookRequestDTO;
-import com.BMS.backend.dto.Book.BookResponseDTO;
+import com.BMS.backend.dto.Book.BookCreateRequest;
+import com.BMS.backend.dto.Book.BookResponse;
 import com.BMS.backend.service.BookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,11 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestController
-// [수정 1] API 정의서에 맞춰 버전(v1)을 URL에 추가
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/books")
 @RequiredArgsConstructor
 public class BookController {
 
@@ -28,94 +30,68 @@ public class BookController {
     private Long getUserIdFromAuth(Authentication authentication) {
         String email= (String) authentication.getPrincipal();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(()->new IllegalArgumentException("User not found"));
+                .orElseThrow(()->new CustomException("User not found", HttpStatus.NOT_FOUND));
         return user.getId();
     }
 
-    /**
-     * 1. 도서 목록 조회
-     * API 정의서: GET /api/v1/books
-     * 입력: 헤더(JWT) -> X-User-Id로 대체
-     * 기능: 로그인한 사용자의 책 목록을 반환
-     */
-    @GetMapping("/books")
-    public ResponseEntity<List<BookResponseDTO>> getBooks(
-            Authentication authentication) {
+    // GET ALL Books
+    @GetMapping
+    public ApiResponse<List<BookResponse>> getAllBooks(){
+        List<Book> list = bookService.getAllBooks();
+        return ApiResponse.success(list.stream().map(BookResponse::new).toList());
+    }
+
+    // GET Users Books
+    @GetMapping("/user")
+    public ApiResponse<List<BookResponse>> getBooksById(
+            Authentication authentication
+    ){
         Long  userId = getUserIdFromAuth(authentication);
-        // 정의서에 '헤더'가 필수라고 되어 있으므로, '내 책 조회' 로직을 여기에 매핑
-        List<BookResponseDTO> books = bookService.getMyBooks(userId)
-                .stream()
-                .map(BookResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(books);
+        List<Book> list= bookService.getMyBooks(userId);
+        return ApiResponse.success(list.stream().map(BookResponse::new).toList());
     }
 
-    /**
-     * 2. 도서 상세 조회
-     * API 정의서: GET /api/v1/books/:id
-     */
-    @GetMapping("/books/{id}")
-    public ResponseEntity<BookResponseDTO> getBookById(@PathVariable Long id) {
-        return bookService.getBookById(id)
-                .map(book -> ResponseEntity.ok(BookResponseDTO.fromEntity(book)))
-                .orElse(ResponseEntity.notFound().build());
+    // GET {id} Book's Info
+    @GetMapping("/{id}")
+    public ApiResponse<BookResponse> getBookById(@PathVariable Long id){
+        Book book = bookService.getBook(id);
+        return ApiResponse.success(new BookResponse(book));
     }
 
-    /**
-     * 3. 도서 등록
-     * API 정의서: POST /api/v1/books/:id
-     * 입력: Body(JSON), 헤더(JWT)
-     */
-    @PostMapping("/books")
-    public ResponseEntity<BookResponseDTO> createBook(
-            @RequestBody BookRequestDTO bookRequestDTO,
+    // POST create Book
+    @PostMapping
+    public ApiResponse<BookResponse> createBook(
+            @RequestBody BookCreateRequest request,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
-        Book book = bookRequestDTO.toEntity();
-        Book savedBook = bookService.createBook(book, userId);
-
-        // 정의서 예시처럼 200 OK와 함께 데이터 반환 (생성은 보통 201을 쓰지만 정의서가 우선이라면 200도 가능, 여기선 표준인 201 유지)
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BookResponseDTO.fromEntity(savedBook));
+        Long userId = getUserIdFromAuth(authentication);
+        Book savedBook = bookService.createBook(request, userId);
+        return ApiResponse.success(new BookResponse(savedBook));
     }
 
-    /**
-     * 4. 도서 수정
-     * API 정의서: PUT /api/v1/books/:id
-     */
-    @PutMapping("/books/{id}")
-    public ResponseEntity<BookResponseDTO> updateBook(
+    // PUT update Book
+    @PutMapping("/{id}")
+    public ApiResponse<BookResponse> updateBook(
             @PathVariable Long id,
-            @RequestBody BookRequestDTO bookRequestDTO,
+            @RequestBody BookUpdateRequest request,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
-        Book book = bookRequestDTO.toEntity();
-        Book updatedBook = bookService.updateBook(id, book, userId);
-        return ResponseEntity.ok(BookResponseDTO.fromEntity(updatedBook));
+        Long userId = getUserIdFromAuth(authentication);
+        Book updated = bookService.updateBook(id, request, userId);
+        return ApiResponse.success(new BookResponse(updated));
     }
 
-    /**
-     * 5. 도서 삭제
-     * API 정의서: DELETE /api/v1/books/:id
-     * 반환: 204 No Content
-     */
-    @DeleteMapping("/books/{id}")
-    public ResponseEntity<Void> deleteBook(
+    // Delete Book
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteBook(
             @PathVariable Long id,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
+        Long userId = getUserIdFromAuth(authentication);
         bookService.deleteBook(id, userId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success(null);
     }
 
-    /**
-     * 6. 표지 저장 (추가된 기능)
-     * API 정의서: PUT /api/v1/books/:id/cover
-     * 입력: { "coverImageUrl": "..." }
-     * 주의: 이 기능을 쓰려면 BookRequestDTO와 Entity에 coverImageUrl 필드가 있어야 합니다.
-     */
-    @PutMapping("/books/cover/{id}")
-    public ResponseEntity<BookResponseDTO> updateBookCover(
+    // PUT update Book's Cover
+    @PutMapping("/cover/{id}")
+    public ResponseEntity<BookResponse> updateBookCover(
             @PathVariable Long id,
             @RequestBody Map<String, String> coverMap, // { "coverImageUrl": "url..." } 형태 받기 위함
             Authentication authentication) {
