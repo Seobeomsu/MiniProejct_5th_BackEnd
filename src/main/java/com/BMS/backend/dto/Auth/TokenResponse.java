@@ -6,8 +6,10 @@ import lombok.Getter;
 public class TokenResponse {
 
     private String token;
+    private Long userId;
 
-    public TokenResponse(String token) {
+    public TokenResponse(String token,  Long userId) {
         this.token = token;
+        this.userId = userId;
     }
 }

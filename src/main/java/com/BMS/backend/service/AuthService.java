@@ -66,7 +66,7 @@ public class AuthService {
             );
         }
         String token = jwtTokenProvider.generateToken(user.getEmail());
-        return new TokenResponse(token);
+        return new TokenResponse(token, user.getId());
     }
 
     public boolean validateToken(String token){
