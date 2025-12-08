@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;   // ResponseStatusException 추가 (AuthService의 ResponseStatusException에 대응)
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -56,6 +57,21 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
+    }
+    /**
+    * 401 UNAUTHRORIZED - 대응
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatusException(ResponseStatusException ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("status", ex.getStatusCode().value());
+        errorResponse.put("error", ex.getStatusCode().toString());
+        errorResponse.put("message", ex.getReason());
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
                 .body(errorResponse);
     }
 }
