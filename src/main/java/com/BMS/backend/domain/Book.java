@@ -1,10 +1,7 @@
 package com.BMS.backend.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
@@ -13,6 +10,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Book {
 
     @Id
@@ -25,11 +23,6 @@ public class Book {
     @Column(nullable = false)
     private String author;
 
-    @Column(name = "published_date")
-    private LocalDate publishedDate;
-
-    private Integer price;
-
     @Column(length = 1000)
     private String description;
 
@@ -37,6 +30,15 @@ public class Book {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(length = 1000)
+    private String bookCoverUrl;
+
+    public void update(String title, String author, String description) {
+        this.title = title;
+        this.author = author;
+        this.description = description;
+    }
 
     public void setCoverImageUrl(String coverImageUrl) {
     }

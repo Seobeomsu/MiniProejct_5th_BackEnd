@@ -1,11 +1,13 @@
 package com.BMS.backend.api;
 
 import com.BMS.backend.domain.User;
+import com.BMS.backend.dto.Book.BookUpdateRequest;
 import com.BMS.backend.exception.ApiResponse;
+import com.BMS.backend.exception.CustomException;
 import com.BMS.backend.repository.UserRepository;
 import com.BMS.backend.domain.Book;
-import com.BMS.backend.dto.Book.BookRequestDTO;
-import com.BMS.backend.dto.Book.BookResponseDTO;
+import com.BMS.backend.dto.Book.BookCreateRequest;
+import com.BMS.backend.dto.Book.BookResponse;
 import com.BMS.backend.service.BookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/books")
@@ -28,76 +30,68 @@ public class BookController {
     private Long getUserIdFromAuth(Authentication authentication) {
         String email= (String) authentication.getPrincipal();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(()->new IllegalArgumentException("User not found"));
+                .orElseThrow(()->new CustomException("User not found", HttpStatus.NOT_FOUND));
         return user.getId();
     }
 
+    // GET ALL Books
     @GetMapping
-    public ApiResponse<List<BookResponseDTO>> getBooks(
-            Authentication authentication) {
+    public ApiResponse<List<BookResponse>> getAllBooks(){
+        List<Book> list = bookService.getAllBooks();
+        return ApiResponse.success(list.stream().map(BookResponse::new).toList());
+    }
+
+    // GET Users Books
+    @GetMapping("/user")
+    public ApiResponse<List<BookResponse>> getBooksById(
+            Authentication authentication
+    ){
         Long  userId = getUserIdFromAuth(authentication);
-        List<BookResponseDTO> books = bookService.getMyBooks(userId)
-                .stream()
-                .map(BookResponseDTO::fromEntity)
-                .collect(Collectors.toList());
-        return ApiResponse.created(books);
+        List<Book> list= bookService.getMyBooks(userId);
+        return ApiResponse.success(list.stream().map(BookResponse::new).toList());
     }
 
+    // GET {id} Book's Info
     @GetMapping("/{id}")
-    public ResponseEntity<BookResponseDTO> getBookById(@PathVariable Long id) {
-        return bookService.getBookById(id)
-                .map(book -> ResponseEntity.ok(BookResponseDTO.fromEntity(book)))
-                .orElse(ResponseEntity.notFound().build());
+    public ApiResponse<BookResponse> getBookById(@PathVariable Long id){
+        Book book = bookService.getBook(id);
+        return ApiResponse.success(new BookResponse(book));
     }
 
-    @PostMapping("/books")
-    public ApiResponse<BookResponseDTO> createBook(
-            @RequestBody BookRequestDTO bookRequestDTO,
+    // POST create Book
+    @PostMapping
+    public ApiResponse<BookResponse> createBook(
+            @RequestBody BookCreateRequest request,
             Authentication authentication) {
         Long userId = getUserIdFromAuth(authentication);
-        Book book = bookRequestDTO.toEntity();
-        Book savedBook = bookService.createBook(book, userId);
-
-        return ApiResponse.success(new BookResponseDTO(savedBook));
+        Book savedBook = bookService.createBook(request, userId);
+        return ApiResponse.success(new BookResponse(savedBook));
     }
 
-    /**
-     * 4. 도서 수정
-     * API 정의서: PUT /api/v1/books/:id
-     */
-    @PutMapping("/books/{id}")
-    public ResponseEntity<BookResponseDTO> updateBook(
+    // PUT update Book
+    @PutMapping("/{id}")
+    public ApiResponse<BookResponse> updateBook(
             @PathVariable Long id,
-            @RequestBody BookRequestDTO bookRequestDTO,
+            @RequestBody BookUpdateRequest request,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
-        Book book = bookRequestDTO.toEntity();
-        Book updatedBook = bookService.updateBook(id, book, userId);
-        return ResponseEntity.ok(BookResponseDTO.fromEntity(updatedBook));
+        Long userId = getUserIdFromAuth(authentication);
+        Book updated = bookService.updateBook(id, request, userId);
+        return ApiResponse.success(new BookResponse(updated));
     }
 
-    /**
-     * 5. 도서 삭제
-     * API 정의서: DELETE /api/v1/books/:id
-     * 반환: 204 No Content
-     */
-    @DeleteMapping("/books/{id}")
-    public ResponseEntity<Void> deleteBook(
+    // Delete Book
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteBook(
             @PathVariable Long id,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
+        Long userId = getUserIdFromAuth(authentication);
         bookService.deleteBook(id, userId);
-        return ResponseEntity.noContent().build();
+        return ApiResponse.success(null);
     }
 
-    /**
-     * 6. 표지 저장 (추가된 기능)
-     * API 정의서: PUT /api/v1/books/:id/cover
-     * 입력: { "coverImageUrl": "..." }
-     * 주의: 이 기능을 쓰려면 BookRequestDTO와 Entity에 coverImageUrl 필드가 있어야 합니다.
-     */
-    @PutMapping("/books/cover/{id}")
-    public ResponseEntity<BookResponseDTO> updateBookCover(
+    // PUT update Book's Cover
+    @PutMapping("/cover/{id}")
+    public ResponseEntity<BookResponse> updateBookCover(
             @PathVariable Long id,
             @RequestBody Map<String, String> coverMap, // { "coverImageUrl": "url..." } 형태 받기 위함
             Authentication authentication) {
