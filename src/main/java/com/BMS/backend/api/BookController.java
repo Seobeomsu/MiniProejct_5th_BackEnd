@@ -1,6 +1,7 @@
 package com.BMS.backend.api;
 
 import com.BMS.backend.domain.User;
+import com.BMS.backend.exception.ApiResponse;
 import com.BMS.backend.repository.UserRepository;
 import com.BMS.backend.domain.Book;
 import com.BMS.backend.dto.Book.BookRequestDTO;
@@ -17,8 +18,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-// [수정 1] API 정의서에 맞춰 버전(v1)을 URL에 추가
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/books")
 @RequiredArgsConstructor
 public class BookController {
 
@@ -32,51 +32,33 @@ public class BookController {
         return user.getId();
     }
 
-    /**
-     * 1. 도서 목록 조회
-     * API 정의서: GET /api/v1/books
-     * 입력: 헤더(JWT) -> X-User-Id로 대체
-     * 기능: 로그인한 사용자의 책 목록을 반환
-     */
-    @GetMapping("/books")
-    public ResponseEntity<List<BookResponseDTO>> getBooks(
+    @GetMapping
+    public ApiResponse<List<BookResponseDTO>> getBooks(
             Authentication authentication) {
         Long  userId = getUserIdFromAuth(authentication);
-        // 정의서에 '헤더'가 필수라고 되어 있으므로, '내 책 조회' 로직을 여기에 매핑
         List<BookResponseDTO> books = bookService.getMyBooks(userId)
                 .stream()
                 .map(BookResponseDTO::fromEntity)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(books);
+        return ApiResponse.created(books);
     }
 
-    /**
-     * 2. 도서 상세 조회
-     * API 정의서: GET /api/v1/books/:id
-     */
-    @GetMapping("/books/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<BookResponseDTO> getBookById(@PathVariable Long id) {
         return bookService.getBookById(id)
                 .map(book -> ResponseEntity.ok(BookResponseDTO.fromEntity(book)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * 3. 도서 등록
-     * API 정의서: POST /api/v1/books/:id
-     * 입력: Body(JSON), 헤더(JWT)
-     */
     @PostMapping("/books")
-    public ResponseEntity<BookResponseDTO> createBook(
+    public ApiResponse<BookResponseDTO> createBook(
             @RequestBody BookRequestDTO bookRequestDTO,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
+        Long userId = getUserIdFromAuth(authentication);
         Book book = bookRequestDTO.toEntity();
         Book savedBook = bookService.createBook(book, userId);
 
-        // 정의서 예시처럼 200 OK와 함께 데이터 반환 (생성은 보통 201을 쓰지만 정의서가 우선이라면 200도 가능, 여기선 표준인 201 유지)
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BookResponseDTO.fromEntity(savedBook));
+        return ApiResponse.success(new BookResponseDTO(savedBook));
     }
 
     /**
