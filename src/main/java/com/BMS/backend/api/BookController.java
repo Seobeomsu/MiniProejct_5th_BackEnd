@@ -1,6 +1,7 @@
 package com.BMS.backend.api;
 
 import com.BMS.backend.domain.User;
+import com.BMS.backend.dto.Book.BookCoverUpdateRequest;
 import com.BMS.backend.dto.Book.BookUpdateRequest;
 import com.BMS.backend.exception.ApiResponse;
 import com.BMS.backend.exception.CustomException;
@@ -91,19 +92,12 @@ public class BookController {
 
     // PUT update Book's Cover
     @PutMapping("/cover/{id}")
-    public ResponseEntity<BookResponse> updateBookCover(
+    public ApiResponse<BookResponse> updateBookCover(
             @PathVariable Long id,
-            @RequestBody Map<String, String> coverMap, // { "coverImageUrl": "url..." } 형태 받기 위함
+            @RequestBody BookCoverUpdateRequest request,
             Authentication authentication) {
         Long  userId = getUserIdFromAuth(authentication);
-
-        String coverImageUrl = coverMap.get("coverImageUrl");
-
-        // 주의: Service에 updateBookCover 메서드를 새로 만드셔야 합니다!
-        // 현재는 코드가 없으므로, 기존 updateBook을 응용하거나 Service에 추가해야 함을 알리는 주석입니다.
-        // Book updatedBook = bookService.updateBookCover(id, coverImageUrl, userId);
-
-        // 임시 리턴 (Service 구현 후 주석 해제하세요)
-        return ResponseEntity.ok().build();
+        Book updated = bookService.updateBookCover(id, request, userId);
+        return ApiResponse.success(new BookResponse(updated));
     }
 }

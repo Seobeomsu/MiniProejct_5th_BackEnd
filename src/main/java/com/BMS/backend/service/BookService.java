@@ -1,6 +1,7 @@
 package com.BMS.backend.service;
 
 import com.BMS.backend.domain.User;
+import com.BMS.backend.dto.Book.BookCoverUpdateRequest;
 import com.BMS.backend.dto.Book.BookCreateRequest;
 import com.BMS.backend.dto.Book.BookUpdateRequest;
 import com.BMS.backend.exception.CustomException;
@@ -71,20 +72,10 @@ public class BookService {
     }
 
     @Transactional
-    public Book updateBookCover(Long id, String coverImageUrl, Long userId) {
-        // 1. 책 찾기
-        Book existingBook = bookRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Book not found with id: " + id,   HttpStatus.NOT_FOUND));
-
-        // 2. 권한 체크
-        if (!existingBook.getUser().getId().equals(userId)) {
-            throw new CustomException("You don't have permission to update this book cover",   HttpStatus.FORBIDDEN);
-        }
-
-        // 3. 표지 이미지 업데이트
-        existingBook.setCoverImageUrl(coverImageUrl);
-
-        return bookRepository.save(existingBook);
+    public Book updateBookCover(Long id, BookCoverUpdateRequest request, Long userId) {
+        Book book = getVerifiedBook(id, userId);
+        book.setCoverImageUrl(request.getBookCoverUrl());
+        return bookRepository.save(book);
     }
 
     private Book getVerifiedBook(Long id, Long userId){
