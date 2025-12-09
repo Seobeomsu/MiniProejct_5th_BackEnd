@@ -70,19 +70,21 @@ public class BookService {
         bookRepository.delete(existingBook);
     }
 
+    /**
+     * 책 표지 이미지 URL 업데이트
+     *
+     * @param id 책 ID
+     * @param coverImageUrl 표지 이미지 URL
+     * @param userId 사용자 ID
+     * @return 업데이트된 책
+     */
     @Transactional
     public Book updateBookCover(Long id, String coverImageUrl, Long userId) {
-        // 1. 책 찾기
-        Book existingBook = bookRepository.findById(id)
-                .orElseThrow(() -> new CustomException("Book not found with id: " + id,   HttpStatus.NOT_FOUND));
+        // 1. 책 찾기 & 권한 확인
+        Book existingBook = getVerifiedBook(id, userId);
 
-        // 2. 권한 체크
-        if (!existingBook.getUser().getId().equals(userId)) {
-            throw new CustomException("You don't have permission to update this book cover",   HttpStatus.FORBIDDEN);
-        }
-
-        // 3. 표지 이미지 업데이트
-        existingBook.setCoverImageUrl(coverImageUrl);
+        // 2. 표지 이미지 업데이트
+        existingBook.updateCover(coverImageUrl);
 
         return bookRepository.save(existingBook);
     }

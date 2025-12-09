@@ -26,6 +26,7 @@ public class BookController {
 
     private final BookService bookService;
     private final UserRepository userRepository;
+    private final com.BMS.backend.service.CoverGenerationService coverGenerationService;
 
     private Long getUserIdFromAuth(Authentication authentication) {
         String email= (String) authentication.getPrincipal();
@@ -89,21 +90,50 @@ public class BookController {
         return ApiResponse.success(null);
     }
 
-    // PUT update Book's Cover
+    /**
+     * 표지 이미지 URL 수동 업데이트
+     * PUT /api/v1/books/cover/{id}
+     * Body: { "coverImageUrl": "https://..." }
+     */
     @PutMapping("/cover/{id}")
-    public ResponseEntity<BookResponse> updateBookCover(
+    public ApiResponse<BookResponse> updateBookCover(
             @PathVariable Long id,
-            @RequestBody Map<String, String> coverMap, // { "coverImageUrl": "url..." } 형태 받기 위함
+            @RequestBody Map<String, String> coverMap,
             Authentication authentication) {
-        Long  userId = getUserIdFromAuth(authentication);
-
+        Long userId = getUserIdFromAuth(authentication);
         String coverImageUrl = coverMap.get("coverImageUrl");
 
-        // 주의: Service에 updateBookCover 메서드를 새로 만드셔야 합니다!
-        // 현재는 코드가 없으므로, 기존 updateBook을 응용하거나 Service에 추가해야 함을 알리는 주석입니다.
-        // Book updatedBook = bookService.updateBookCover(id, coverImageUrl, userId);
+        Book updatedBook = bookService.updateBookCover(id, coverImageUrl, userId);
+        return ApiResponse.success(new BookResponse(updatedBook));
+    }
 
-        // 임시 리턴 (Service 구현 후 주석 해제하세요)
-        return ResponseEntity.ok().build();
+    /**
+     * AI로 표지 이미지 자동 생성
+     * POST /api/v1/books/{id}/generate-cover
+     */
+    @PostMapping("/{id}/generate-cover")
+    public ApiResponse<BookResponse> generateBookCover(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long userId = getUserIdFromAuth(authentication);
+
+        // 1️⃣ 책 정보 조회
+        Book book = bookService.getBook(id);
+
+        // 2️⃣ 권한 확인 (본인의 책인지)
+        if (!book.getUser().getId().equals(userId)) {
+            throw new CustomException("You don't have permission to generate cover for this book", HttpStatus.FORBIDDEN);
+        }
+
+        // 3️⃣ AI로 표지 생성 (DALL-E API 호출 + 로컬 저장)
+        String generatedCoverUrl = coverGenerationService.generateAndSaveBookCover(
+                book.getTitle(),
+                book.getAuthor()
+        );
+
+        // 4️⃣ DB에 저장
+        Book updatedBook = bookService.updateBookCover(id, generatedCoverUrl, userId);
+
+        return ApiResponse.success(new BookResponse(updatedBook));
     }
 }

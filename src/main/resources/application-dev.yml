@@ -39,3 +39,9 @@ app:
 # 파일 업로드 경로
 file:
   upload-dir: uploads/
+
+# OpenAI API 설정
+openai:
+  api-key: ${OPENAI_API_KEY:your-api-key-here}  # 환경변수 또는 직접 입력
+  model: dall-e-3
+  image-size: 1024x1024
