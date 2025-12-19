@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+
+  pre_build:
+    commands:
+      - echo "Preparing Gradle build"
+      - chmod +x gradlew
+
+  build:
+    commands:
+      - ./gradlew clean build -x test
+
+artifacts:
+  files:
+    - build/libs/*.jar
+    - appspec.yml
+    - scripts/**/*
